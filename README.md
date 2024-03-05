@@ -6,4 +6,4 @@ At the moment, the library only builds for iOS, due to the use of the external l
 * libpartialzip
 * libcurl
 
-Huge credit to @dhinakg for reimplementing the API parsing in Objective-C (as it was originally in Swift).
+Huge credit to [dhinakg](https://github.com/dhinakg) for reimplementing the API parsing in Objective-C (as it was originally in Swift).
