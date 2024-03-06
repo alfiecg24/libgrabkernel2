@@ -28,6 +28,7 @@ static NSString *getAPIURL(void) {
             case UIUserInterfaceIdiomPad:
                 if (@available(iOS 13.0, *)) {
                     osStr = @"iPadOS";
+                    break;
                 }
             case UIUserInterfaceIdiomPhone:
                 osStr = @"iOS";
