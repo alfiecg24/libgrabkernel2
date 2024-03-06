@@ -61,7 +61,7 @@ static NSString *getAPIURL(void) {
 static NSString *getModelIdentifier(void) {
     char modelIdentifier[256];
     size_t size = sizeof(modelIdentifier);
-    int result = sysctlbyname("hw.model", &modelIdentifier, &size, NULL, 0);
+    int result = sysctlbyname("hw.target", &modelIdentifier, &size, NULL, 0);
     if (result) {
         return nil;
     }
