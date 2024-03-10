@@ -11,12 +11,14 @@
 #include <string.h>
 #include <sys/sysctl.h>
 #include "appledb.h"
+#include "utils.h"
 
 static NSString *getBoardconfig(void) {
     char boardconfig[256];
     size_t size = sizeof(boardconfig);
     int result = sysctlbyname("hw.target", &boardconfig, &size, NULL, 0);
     if (result) {
+        error("Failed to get boardconfig!\n");
         return nil;
     }
 
@@ -32,18 +34,18 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
 
     fz = fragmentzip_open(zipURL.UTF8String);
     if (!fz) {
-        printf("Failed to open fragment zip handle!\n");
+        error("Failed to open fragment zip handle!\n");
         return false;
     }
 
-    printf("Downloading BuildManifest.plist...\n");
+    log("Downloading BuildManifest.plist...\n");
 
     char *buildManifestRaw = NULL;
     size_t buildManifestRawSize = 0;
 
     if (fragmentzip_download_to_memory(fz, [pathPrefix stringByAppendingPathComponent:@"BuildManifest.plist"].UTF8String, &buildManifestRaw,
                                        &buildManifestRawSize, NULL)) {
-        printf("Failed to download BuildManifest.plist!\n");
+        error("Failed to download BuildManifest.plist!\n");
         fragmentzip_close(fz);
         return false;
     }
@@ -51,7 +53,7 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
     NSData *buildManifestData = [NSData dataWithBytesNoCopy:buildManifestRaw length:buildManifestRawSize];
     NSDictionary *buildManifest = [NSPropertyListSerialization propertyListWithData:buildManifestData options:0 format:NULL error:&error];
     if (error) {
-        printf("Failed to parse BuildManifest.plist!\n");
+        error("Failed to parse BuildManifest.plist!\n");
         fragmentzip_close(fz);
         return false;
     }
@@ -68,16 +70,16 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
     }
 
     if (!kernelCachePath) {
-        printf("Failed to find kernelcache path in BuildManifest.plist!\n");
+        error("Failed to find kernelcache path in BuildManifest.plist!\n");
         fragmentzip_close(fz);
         return false;
     }
 
     NSString *kernelCacheOut = [outDir stringByAppendingPathComponent:@"kernelcache"];
-    printf("Downloading %s...\n", kernelCachePath.UTF8String);
+    log("Downloading %s...\n", kernelCachePath.UTF8String);
 
     if (fragmentzip_download_file(fz, kernelCachePath.UTF8String, kernelCacheOut.UTF8String, NULL) != 0) {
-        printf("Failed to download %s!\n", kernelCachePath.UTF8String);
+        error("Failed to download %s!\n", kernelCachePath.UTF8String);
         fragmentzip_close(fz);
         return false;
     }
@@ -91,7 +93,7 @@ bool grab_kernelcache(NSString *outDir) {
     bool isOTA = NO;
     NSString *firmwareURL = getFirmwareURL(&isOTA);
     if (!firmwareURL) {
-        printf("Failed to get firmware URL!\n");
+        error("Failed to get firmware URL!\n");
         return false;
     }
 
