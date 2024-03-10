@@ -10,7 +10,7 @@
 
 #include <Foundation/Foundation.h>
 
-bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir);
-bool grab_kernelcache(NSString *outDir);
+bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath);
+bool grab_kernelcache(NSString *outPath);
 
 #endif /* grabkernel_h */

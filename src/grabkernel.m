@@ -25,7 +25,7 @@ static NSString *getBoardconfig(void) {
     return [NSString stringWithCString:boardconfig encoding:NSUTF8StringEncoding];
 }
 
-bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
+bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     NSError *error = nil;
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
     NSString *boardconfig = getBoardconfig();
@@ -75,10 +75,9 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
         return false;
     }
 
-    NSString *kernelCacheOut = [outDir stringByAppendingPathComponent:@"kernelcache"];
     log("Downloading %s...\n", kernelCachePath.UTF8String);
 
-    if (fragmentzip_download_file(fz, kernelCachePath.UTF8String, kernelCacheOut.UTF8String, NULL) != 0) {
+    if (fragmentzip_download_file(fz, kernelCachePath.UTF8String, outPath.UTF8String, NULL) != 0) {
         error("Failed to download %s!\n", kernelCachePath.UTF8String);
         fragmentzip_close(fz);
         return false;
@@ -89,7 +88,7 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outDir) {
     return true;
 }
 
-bool grab_kernelcache(NSString *outDir) {
+bool grab_kernelcache(NSString *outPath) {
     bool isOTA = NO;
     NSString *firmwareURL = getFirmwareURL(&isOTA);
     if (!firmwareURL) {
@@ -97,5 +96,5 @@ bool grab_kernelcache(NSString *outDir) {
         return false;
     }
 
-    return download_kernelcache(firmwareURL, isOTA, outDir);
+    return download_kernelcache(firmwareURL, isOTA, outPath);
 }
