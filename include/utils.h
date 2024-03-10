@@ -3,7 +3,15 @@
 
 #include <stdio.h>
 
-#define log(fmt, ...) printf("libgrabkernel2: " fmt, ##__VA_ARGS__)
+#define LIBGRABKERNEL2_USE_LOG_PREFIX 1
+
+#if LIBGRABKERNEL2_USE_LOG_PREFIX
+#define LOG_PREFIX "libgrabkernel2: "
+#else
+#define LOG_PREFIX ""
+#endif
+
+#define log(fmt, ...) printf(LOG_PREFIX fmt, ##__VA_ARGS__)
 
 #define error(fmt, ...) log("ERROR: " fmt, ##__VA_ARGS__)
 
