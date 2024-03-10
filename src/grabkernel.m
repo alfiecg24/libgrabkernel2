@@ -98,3 +98,12 @@ bool grab_kernelcache(NSString *outPath) {
 
     return download_kernelcache(firmwareURL, isOTA, outPath);
 }
+
+// libgrabkernel compatibility shim
+// Note that research kernel grabbing is not currently supported
+int grabkernel(char *downloadPath, int isResearchKernel __unused) {
+    @autoreleasepool {
+        NSString *outPath = [NSString stringWithCString:downloadPath encoding:NSUTF8StringEncoding];
+        return grab_kernelcache(outPath) ? 0 : -1;
+    }
+}
