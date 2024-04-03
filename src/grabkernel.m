@@ -7,7 +7,7 @@
 
 #include "grabkernel.h"
 #include <Foundation/Foundation.h>
-#include <libfragmentzip/libfragmentzip.h>
+#include <partial/partial.h>
 #include <string.h>
 #include <sys/sysctl.h>
 #include "appledb.h"
@@ -30,31 +30,23 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
     NSString *boardconfig = getBoardconfig();
 
-    fragmentzip_t *fz = NULL;
-
-    fz = fragmentzip_open(zipURL.UTF8String);
-    if (!fz) {
-        error("Failed to open fragment zip handle!\n");
+    Partial *zip = [Partial partialZipWithURL:[NSURL URLWithString:zipURL] error:&error];
+    if (!zip) {
+        error("Failed to open zip file! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
     log("Downloading BuildManifest.plist...\n");
 
-    char *buildManifestRaw = NULL;
-    size_t buildManifestRawSize = 0;
-
-    if (fragmentzip_download_to_memory(fz, [pathPrefix stringByAppendingPathComponent:@"BuildManifest.plist"].UTF8String, &buildManifestRaw,
-                                       &buildManifestRawSize, NULL)) {
+    NSData *buildManifestData = [zip getFileForPath:[pathPrefix stringByAppendingPathComponent:@"BuildManifest.plist"] error:&error];
+    if (!buildManifestData) {
         error("Failed to download BuildManifest.plist!\n");
-        fragmentzip_close(fz);
         return false;
     }
 
-    NSData *buildManifestData = [NSData dataWithBytesNoCopy:buildManifestRaw length:buildManifestRawSize];
     NSDictionary *buildManifest = [NSPropertyListSerialization propertyListWithData:buildManifestData options:0 format:NULL error:&error];
     if (error) {
         error("Failed to parse BuildManifest.plist!\n");
-        fragmentzip_close(fz);
         return false;
     }
 
@@ -71,19 +63,23 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 
     if (!kernelCachePath) {
         error("Failed to find kernelcache path in BuildManifest.plist!\n");
-        fragmentzip_close(fz);
         return false;
     }
 
-    log("Downloading %s...\n", kernelCachePath.UTF8String);
+    log("Downloading %s to %s...\n", kernelCachePath.UTF8String, outPath.UTF8String);
 
-    if (fragmentzip_download_file(fz, kernelCachePath.UTF8String, outPath.UTF8String, NULL) != 0) {
-        error("Failed to download %s!\n", kernelCachePath.UTF8String);
-        fragmentzip_close(fz);
+    NSData *kernelCacheData = [zip getFileForPath:kernelCachePath error:&error];
+    if (!kernelCacheData) {
+        error("Failed to download kernelcache!\n");
         return false;
+    } else {
+        log("Downloaded kernelcache!\n");
     }
 
-    fragmentzip_close(fz);
+    if (![kernelCacheData writeToFile:outPath atomically:YES]) {
+        error("Failed to write kernelcache to %s!\n", outPath.UTF8String);
+        return false;
+    }
 
     return true;
 }
@@ -102,8 +98,6 @@ bool grab_kernelcache(NSString *outPath) {
 // libgrabkernel compatibility shim
 // Note that research kernel grabbing is not currently supported
 int grabkernel(char *downloadPath, int isResearchKernel __unused) {
-    @autoreleasepool {
-        NSString *outPath = [NSString stringWithCString:downloadPath encoding:NSUTF8StringEncoding];
-        return grab_kernelcache(outPath) ? 0 : -1;
-    }
+    NSString *outPath = [NSString stringWithCString:downloadPath encoding:NSUTF8StringEncoding];
+    return grab_kernelcache(outPath) ? 0 : -1;
 }

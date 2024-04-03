@@ -4,10 +4,10 @@ LIB_NAME := libgrabkernel2
 
 CC := clang
 
-CFLAGS ?= -Wall -Werror -Wno-unused-command-line-argument -Iinclude -I_external/include -fPIC -fobjc-arc -O3
-LDFLAGS ?= -framework Foundation -framework Security -L_external/lib -lz
-
 TARGET ?= macos
+
+CFLAGS ?= -Wall -Werror -Wno-unused-command-line-argument -Iinclude -I_external/include -fPIC -fobjc-arc -O3
+LDFLAGS ?= -framework Foundation -framework Security -L_external/lib/$(TARGET) -lz -lpartial
 
 ifeq ($(TARGET), macos)
 CFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=11.0

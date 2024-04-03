@@ -5,7 +5,7 @@ int main(int argc, const char *argv[]) {
     @autoreleasepool {
         NSLog(@"Hello, World!");
         bool result = grab_kernelcache([NSTemporaryDirectory() stringByAppendingPathComponent:@"kc"]);
-        NSLog(@"result: %d", result);
+        NSLog(@"result: %@", result ? @"success" : @"failure");
+        return !result;
     }
-    return 0;
 }
