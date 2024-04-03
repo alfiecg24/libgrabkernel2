@@ -4,7 +4,7 @@ LIB_NAME := libgrabkernel2
 
 CC := clang
 
-TARGET ?= macos
+TARGET ?= ios
 
 CFLAGS ?= -Wall -Werror -Wno-unused-command-line-argument -Iinclude -I_external/include -fPIC -fobjc-arc -O3
 LDFLAGS ?= -framework Foundation -framework Security -L_external/lib/$(TARGET) -lz -lpartial
