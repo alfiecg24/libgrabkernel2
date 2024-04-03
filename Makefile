@@ -72,7 +72,7 @@ $(TESTS_OUTPUT_DIR)/%: $$(wildcard $(TESTS_SRC_DIR)/%/*.m) $(STATIC_LIB)
 	@rm -rf $@
 	$(CC) $(CFLAGS) $(LDFLAGS) -I$(OUTPUT_DIR)/include -o $@ $^
 	@if [ "$(TARGET)" = "ios" ]; then \
-		ldid -Sexternal/ios/entitlements.plist $@; \
+		ldid -S_external/ios/entitlements.plist $@; \
 	fi
 endif
 
