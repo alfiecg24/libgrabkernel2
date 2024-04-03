@@ -40,13 +40,13 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 
     NSData *buildManifestData = [zip getFileForPath:[pathPrefix stringByAppendingPathComponent:@"BuildManifest.plist"] error:&error];
     if (!buildManifestData) {
-        error("Failed to download BuildManifest.plist!\n");
+        error("Failed to download BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
     NSDictionary *buildManifest = [NSPropertyListSerialization propertyListWithData:buildManifestData options:0 format:NULL error:&error];
     if (error) {
-        error("Failed to parse BuildManifest.plist!\n");
+        error("Failed to parse BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
@@ -70,7 +70,7 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 
     NSData *kernelCacheData = [zip getFileForPath:kernelCachePath error:&error];
     if (!kernelCacheData) {
-        error("Failed to download kernelcache!\n");
+        error("Failed to download kernelcache! %s\n", error.localizedDescription.UTF8String);
         return false;
     } else {
         log("Downloaded kernelcache!\n");
