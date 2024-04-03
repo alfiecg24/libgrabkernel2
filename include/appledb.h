@@ -8,7 +8,7 @@
 #ifndef appledb_h
 #define appledb_h
 
-#import <Foundation/NSString.h>
+#import <Foundation/Foundation.h>
 
 NSString *getFirmwareURL(bool *isOTA);
 

@@ -75,20 +75,26 @@ static NSString *getModelIdentifier(void) {
     return [NSString stringWithCString:modelIdentifier encoding:NSUTF8StringEncoding];
 }
 
-static NSData *makeSynchronousRequest(NSString *url, __strong NSError **error) {
+static NSData *makeSynchronousRequest(NSString *url, NSError **error) {
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-    __block NSData *data = nil;
+    __block NSData* data = nil;
+    __block NSError* taskError = nil;
     NSURLSession *session = [NSURLSession sharedSession];
-    NSURLSessionDataTask *task = [session dataTaskWithURL:[NSURL URLWithString:url]
-                                        completionHandler:^(NSData *_data, NSURLResponse *response, NSError *_error) {
-                                            data = _data;
-                                            if (error) {
-                                                *error = _error;
-                                            }
-                                            dispatch_semaphore_signal(semaphore);
-                                        }];
+
+
+    NSURLSessionDataTask* task = [session dataTaskWithURL:[NSURL URLWithString:url]
+                                                   completionHandler:^(NSData* taskData, NSURLResponse* response, NSError* error) {
+                                                       data = taskData;
+                                                       taskError = error;
+                                                       dispatch_semaphore_signal(semaphore);
+                                                   }];
     [task resume];
+
     dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+
+    if (error) {
+        *error = taskError;
+    }
 
     return data;
 }
