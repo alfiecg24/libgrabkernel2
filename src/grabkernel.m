@@ -85,19 +85,17 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 }
 
 bool grab_kernelcache(NSString *outPath) {
+    // Check if outPath is nil or empty
     if (!outPath || [outPath length] == 0) {
         error("Invalid outPath!\n");
         return false;
     }
 
-    // Validate the outPath string to ensure it is a valid file path
+    // Sanitize the outPath string to remove illegal characters
     NSCharacterSet *illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/:"];
-    NSRange range = [outPath rangeOfCharacterFromSet:illegalFileNameCharacters];
-    if (range.location != NSNotFound) {
-        error("Invalid characters in outPath!\n");
-        return false;
-    }
+    outPath = [[outPath componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
 
+    // Define isOTA and firmwareURL parameters
     bool isOTA = NO;
     NSString *firmwareURL = getFirmwareURL(&isOTA);
     if (!firmwareURL) {
