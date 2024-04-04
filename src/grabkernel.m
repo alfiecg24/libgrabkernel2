@@ -85,7 +85,7 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 }
 
 bool grab_kernelcache(NSString *outPath) {
-    if (!outPath) {
+    if (!downloadPath) {
         error("Invalid download path!\n");
         return false;
     }
@@ -97,9 +97,10 @@ bool grab_kernelcache(NSString *outPath) {
         error("Invalid characters in download path!\n");
         return false;
     }
-
-    return download_kernelcache(outPath);
+    
+    return download_kernelcache(zipURL, isOTA, outPath);
 }
+
 
 // libgrabkernel compatibility shim
 // Note that research kernel grabbing is not currently supported
