@@ -85,8 +85,8 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 }
 
 bool grab_kernelcache(NSString *outPath) {
-    if (!downloadPath) {
-        error("Invalid download path!\n");
+    if (!outPath || [outPath length] == 0) {
+        error("Invalid outPath!\n");
         return false;
     }
 
@@ -94,11 +94,18 @@ bool grab_kernelcache(NSString *outPath) {
     NSCharacterSet *illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/:"];
     NSRange range = [outPath rangeOfCharacterFromSet:illegalFileNameCharacters];
     if (range.location != NSNotFound) {
-        error("Invalid characters in download path!\n");
+        error("Invalid characters in outPath!\n");
         return false;
     }
-    
-    return download_kernelcache(zipURL, isOTA, outPath);
+
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURL(&isOTA);
+    if (!firmwareURL) {
+        error("Failed to get firmware URL!\n");
+        return false;
+    }
+
+    return download_kernelcache(firmwareURL, isOTA, outPath);
 }
 
 
