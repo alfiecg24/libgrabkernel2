@@ -84,15 +84,26 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     return true;
 }
 
-bool grab_kernelcache(NSString *outPath) {
-    bool isOTA = NO;
-    NSString *firmwareURL = getFirmwareURL(&isOTA);
-    if (!firmwareURL) {
-        error("Failed to get firmware URL!\n");
+bool grab_kernelcache(const char *downloadPath) {
+    // Check if downloadPath is NULL
+    if (!downloadPath) {
+        error("Invalid download path!\n");
         return false;
     }
 
-    return download_kernelcache(firmwareURL, isOTA, outPath);
+    // Convert the downloadPath to an NSString
+    NSString *outPath = [NSString stringWithUTF8String:downloadPath];
+
+    // Validate the outPath string to ensure it is a valid file path
+    NSCharacterSet *illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/:"];
+    NSRange range = [outPath rangeOfCharacterFromSet:illegalFileNameCharacters];
+    if (range.location != NSNotFound) {
+        error("Invalid characters in download path!\n");
+        return false;
+    }
+
+    // Proceed with downloading the kernel cache
+    return download_kernelcache(outPath);
 }
 
 // libgrabkernel compatibility shim
