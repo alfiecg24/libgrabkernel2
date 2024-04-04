@@ -97,7 +97,24 @@ bool grab_kernelcache(NSString *outPath) {
 
 // libgrabkernel compatibility shim
 // Note that research kernel grabbing is not currently supported
-int grabkernel(char *downloadPath, int isResearchKernel __unused) {
-    NSString *outPath = [NSString stringWithCString:downloadPath encoding:NSUTF8StringEncoding];
+int grabkernel(const char *downloadPath, int isResearchKernel __unused) {
+    // Check if downloadPath is NULL
+    if (!downloadPath) {
+        error("Invalid download path!\n");
+        return -1;
+    }
+
+    // Convert the downloadPath to an NSString
+    NSString *outPath = [NSString stringWithUTF8String:downloadPath];
+
+    // Validate the outPath string to ensure it is a valid file path
+    NSCharacterSet *illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/:"];
+    NSRange range = [outPath rangeOfCharacterFromSet:illegalFileNameCharacters];
+    if (range.location != NSNotFound) {
+        error("Invalid characters in download path!\n");
+        return -1;
+    }
+
+    // Proceed with downloading the kernel cache
     return grab_kernelcache(outPath) ? 0 : -1;
 }
