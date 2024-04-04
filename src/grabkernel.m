@@ -1,5 +1,5 @@
 //
-//  grabkernel.c
+//  grabkernel.m
 //  libgrabkernel2
 //
 //  Created by Alfie on 14/02/2024.
@@ -85,14 +85,20 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 }
 
 bool grab_kernelcache(NSString *outPath) {
-    bool isOTA = NO;
-    NSString *firmwareURL = getFirmwareURL(&isOTA);
-    if (!firmwareURL) {
-        error("Failed to get firmware URL!\n");
+    if (!outPath) {
+        error("Invalid download path!\n");
         return false;
     }
 
-    return download_kernelcache(firmwareURL, isOTA, outPath);
+    // Validate the outPath string to ensure it is a valid file path
+    NSCharacterSet *illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/:"];
+    NSRange range = [outPath rangeOfCharacterFromSet:illegalFileNameCharacters];
+    if (range.location != NSNotFound) {
+        error("Invalid characters in download path!\n");
+        return false;
+    }
+
+    return download_kernelcache(outPath);
 }
 
 // libgrabkernel compatibility shim
