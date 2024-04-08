@@ -30,6 +30,26 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
     NSString *boardconfig = getBoardconfig();
 
+    if (!zipURL) {
+        error("Missing firmware URL!\n");
+        return false;
+    }
+
+    if (!outPath) {
+        error("Missing output path!\n");
+        return false;
+    }
+
+    if (![[NSFileManager defaultManager] isWritableFileAtPath:outPath.stringByDeletingLastPathComponent]) {
+        error("Output directory is not writable!\n");
+        return false;
+    }
+
+    if (!boardconfig) {
+        error("Failed to get boardconfig!\n");
+        return false;
+    }
+
     Partial *zip = [Partial partialZipWithURL:[NSURL URLWithString:zipURL] error:&error];
     if (!zip) {
         error("Failed to open zip file! %s\n", error.localizedDescription.UTF8String);
@@ -76,8 +96,8 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
         log("Downloaded kernelcache!\n");
     }
 
-    if (![kernelCacheData writeToFile:outPath atomically:YES]) {
-        error("Failed to write kernelcache to %s!\n", outPath.UTF8String);
+    if (![kernelCacheData writeToFile:outPath options:NSDataWritingAtomic error:&error]) {
+        error("Failed to write kernelcache to %s! %s\n", outPath.UTF8String, error.localizedDescription.UTF8String);
         return false;
     }
 
