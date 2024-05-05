@@ -13,22 +13,9 @@
 #include "appledb.h"
 #include "utils.h"
 
-static NSString *getBoardconfig(void) {
-    char boardconfig[256];
-    size_t size = sizeof(boardconfig);
-    int result = sysctlbyname("hw.target", &boardconfig, &size, NULL, 0);
-    if (result) {
-        ERRLOG("Failed to get boardconfig!\n");
-        return nil;
-    }
-
-    return [NSString stringWithCString:boardconfig encoding:NSUTF8StringEncoding];
-}
-
-bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
+bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outPath) {
     NSError *error = nil;
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
-    NSString *boardconfig = getBoardconfig();
 
     if (!zipURL) {
         ERRLOG("Missing firmware URL!\n");
@@ -42,11 +29,6 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
 
     if (![[NSFileManager defaultManager] isWritableFileAtPath:outPath.stringByDeletingLastPathComponent]) {
         ERRLOG("Output directory is not writable!\n");
-        return false;
-    }
-
-    if (!boardconfig) {
-        ERRLOG("Failed to get boardconfig!\n");
         return false;
     }
 
@@ -102,6 +84,29 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     }
 
     return true;
+}
+
+bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
+    NSString *boardconfig = getBoardconfig();
+
+    if (!boardconfig) {
+        ERRLOG("Failed to get boardconfig!\n");
+        return false;
+    }
+
+    return download_kernelcache_for(boardconfig, zipURL, isOTA, outPath);
+}
+
+// TODO: Only require one of model identifier/boardconfig and use API to get the other?
+bool grab_kernelcache_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardconfig, NSString *outPath) {
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURLFor(osStr, build, modelIdentifier, &isOTA);
+    if (!firmwareURL) {
+        ERRLOG("Failed to get firmware URL!\n");
+        return false;
+    }
+
+    return download_kernelcache_for(boardconfig, firmwareURL, isOTA, outPath);
 }
 
 bool grab_kernelcache(NSString *outPath) {

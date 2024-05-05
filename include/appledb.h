@@ -10,6 +10,7 @@
 
 #import <Foundation/Foundation.h>
 
+NSString *getFirmwareURLFor(NSString *osStr, NSString *build, NSString *modelIdentifier, bool *isOTA);
 NSString *getFirmwareURL(bool *isOTA);
 
 #endif /* appledb_h */

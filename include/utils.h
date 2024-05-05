@@ -1,6 +1,7 @@
 #ifndef utils_h
 #define utils_h
 
+#include <Foundation/Foundation.h>
 #include <stdio.h>
 
 #define LIBGRABKERNEL2_USE_LOG_PREFIX 1
@@ -20,5 +21,10 @@
 #else
 #define DBGLOG(fmt, ...)
 #endif
+
+NSString *getOsStr(void);
+NSString *getBuild(void);
+NSString *getModelIdentifier(void);
+NSString *getBoardconfig(void);
 
 #endif /* utils_h */
