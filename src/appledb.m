@@ -41,14 +41,14 @@ static NSString *getAPIURL(void) {
                 osStr = @"macOS";
                 break;
             default:
-                error("Unrecognized device type %d!\n", (int)UIDevice.currentDevice.userInterfaceIdiom);
+                ERRLOG("Unrecognized device type %d!\n", (int)UIDevice.currentDevice.userInterfaceIdiom);
                 break;
         }
     }
 #endif
 
     if (!osStr) {
-        error("Unsupported platform!\n");
+        ERRLOG("Unsupported platform!\n");
         return nil;
     }
 
@@ -56,7 +56,7 @@ static NSString *getAPIURL(void) {
     size_t size = sizeof(build);
     int result = sysctlbyname("kern.osversion", &build, &size, NULL, 0);
     if (result) {
-        error("Failed to get build!\n");
+        ERRLOG("Failed to get build!\n");
         return nil;
     }
 
@@ -68,7 +68,7 @@ static NSString *getModelIdentifier(void) {
     size_t size = sizeof(modelIdentifier);
     int result = sysctlbyname("hw.product", &modelIdentifier, &size, NULL, 0);
     if (result) {
-        error("Failed to get model identifier!\n");
+        ERRLOG("Failed to get model identifier!\n");
         return nil;
     }
 
@@ -102,20 +102,20 @@ static NSData *makeSynchronousRequest(NSString *url, NSError **error) {
 NSString *getFirmwareURL(bool *isOTA) {
     NSString *apiURL = getAPIURL();
     if (!apiURL) {
-        error("Failed to get API URL!\n");
+        ERRLOG("Failed to get API URL!\n");
         return nil;
     }
 
     NSError *error = nil;
     NSData *data = makeSynchronousRequest(apiURL, &error);
     if (error) {
-        error("Failed to fetch API data: %s\n", error.localizedDescription.UTF8String);
+        ERRLOG("Failed to fetch API data: %s\n", error.localizedDescription.UTF8String);
         return nil;
     }
 
     NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
     if (error) {
-        error("Failed to parse API data: %s\n", error.localizedDescription.UTF8String);
+        ERRLOG("Failed to parse API data: %s\n", error.localizedDescription.UTF8String);
         return nil;
     }
 
@@ -123,44 +123,44 @@ NSString *getFirmwareURL(bool *isOTA) {
 
     for (NSDictionary<NSString *, id> *source in json[@"sources"]) {
         if (![source[@"deviceMap"] containsObject:modelIdentifier]) {
-            debug("Skipping source that does not include device: %s\n", [source[@"deviceMap"] componentsJoinedByString:@", "].UTF8String);
+            DBGLOG("Skipping source that does not include device: %s\n", [source[@"deviceMap"] componentsJoinedByString:@", "].UTF8String);
             continue;
         }
 
         if (![@[@"ota", @"ipsw"] containsObject:source[@"type"]]) {
-            debug("Skipping source type: %s\n", [source[@"type"] UTF8String]);
+            DBGLOG("Skipping source type: %s\n", [source[@"type"] UTF8String]);
             continue;
         }
 
         if ([source[@"type"] isEqualToString:@"ota"] && source[@"prerequisiteBuild"]) {
             // ignore deltas
-            debug("Skipping OTA source with prerequisite build: %s\n", [source[@"prerequisiteBuild"] UTF8String]);
+            DBGLOG("Skipping OTA source with prerequisite build: %s\n", [source[@"prerequisiteBuild"] UTF8String]);
             continue;
         }
 
         for (NSDictionary<NSString *, id> *link in source[@"links"]) {
             NSURL *url = [NSURL URLWithString:link[@"url"]];
             if ([hostsNeedingAuth containsObject:url.host]) {
-                debug("Skipping link that needs authentication: %s\n", url.absoluteString.UTF8String);
+                DBGLOG("Skipping link that needs authentication: %s\n", url.absoluteString.UTF8String);
                 continue;
             }
 
             if (!link[@"active"]) {
-                debug("Skipping inactive link: %s\n", url.absoluteString.UTF8String);
+                DBGLOG("Skipping inactive link: %s\n", url.absoluteString.UTF8String);
                 continue;
             }
 
             if (isOTA) {
                 *isOTA = [source[@"type"] isEqualToString:@"ota"];
             }
-            log("Found firmware URL: %s (OTA: %s)\n", url.absoluteString.UTF8String, *isOTA ? "yes" : "no");
+            LOG("Found firmware URL: %s (OTA: %s)\n", url.absoluteString.UTF8String, *isOTA ? "yes" : "no");
             return link[@"url"];
         }
 
-        debug("No suitable links found for source: %s\n", [source[@"name"] UTF8String]);
+        DBGLOG("No suitable links found for source: %s\n", [source[@"name"] UTF8String]);
     }
 
-    error("Failed to find a firmware URL!\n");
+    ERRLOG("Failed to find a firmware URL!\n");
 
     return nil;
 }

@@ -11,14 +11,14 @@
 #define LOG_PREFIX ""
 #endif
 
-#define log(fmt, ...) printf(LOG_PREFIX fmt, ##__VA_ARGS__)
+#define LOG(fmt, ...) printf(LOG_PREFIX fmt, ##__VA_ARGS__)
 
-#define error(fmt, ...) log("ERROR: " fmt, ##__VA_ARGS__)
+#define ERRLOG(fmt, ...) LOG("ERROR: " fmt, ##__VA_ARGS__)
 
 #ifdef DEBUG
-#define debug(fmt, ...) log("DEBUG: " fmt, ##__VA_ARGS__)
+#define DBGLOG(fmt, ...) LOG("DEBUG: " fmt, ##__VA_ARGS__)
 #else
-#define debug(fmt, ...)
+#define DBGLOG(fmt, ...)
 #endif
 
 #endif /* utils_h */
