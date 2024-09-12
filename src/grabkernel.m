@@ -13,40 +13,42 @@
 #include "appledb.h"
 #include "utils.h"
 
-static NSString *getBoardconfig(void) {
-    char boardconfig[256];
-    size_t size = sizeof(boardconfig);
-    int result = sysctlbyname("hw.target", &boardconfig, &size, NULL, 0);
-    if (result) {
-        error("Failed to get boardconfig!\n");
-        return nil;
-    }
-
-    return [NSString stringWithCString:boardconfig encoding:NSUTF8StringEncoding];
-}
-
-bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
+bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outPath) {
     NSError *error = nil;
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
-    NSString *boardconfig = getBoardconfig();
 
-    Partial *zip = [Partial partialZipWithURL:[NSURL URLWithString:zipURL] error:&error];
-    if (!zip) {
-        error("Failed to open zip file! %s\n", error.localizedDescription.UTF8String);
+    if (!zipURL) {
+        ERRLOG("Missing firmware URL!\n");
         return false;
     }
 
-    log("Downloading BuildManifest.plist...\n");
+    if (!outPath) {
+        ERRLOG("Missing output path!\n");
+        return false;
+    }
+
+    if (![[NSFileManager defaultManager] isWritableFileAtPath:outPath.stringByDeletingLastPathComponent]) {
+        ERRLOG("Output directory is not writable!\n");
+        return false;
+    }
+
+    Partial *zip = [Partial partialZipWithURL:[NSURL URLWithString:zipURL] error:&error];
+    if (!zip) {
+        ERRLOG("Failed to open zip file! %s\n", error.localizedDescription.UTF8String);
+        return false;
+    }
+
+    LOG("Downloading BuildManifest.plist...\n");
 
     NSData *buildManifestData = [zip getFileForPath:[pathPrefix stringByAppendingPathComponent:@"BuildManifest.plist"] error:&error];
     if (!buildManifestData) {
-        error("Failed to download BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
+        ERRLOG("Failed to download BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
     NSDictionary *buildManifest = [NSPropertyListSerialization propertyListWithData:buildManifestData options:0 format:NULL error:&error];
     if (error) {
-        error("Failed to parse BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
+        ERRLOG("Failed to parse BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
@@ -62,33 +64,56 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     }
 
     if (!kernelCachePath) {
-        error("Failed to find kernelcache path in BuildManifest.plist!\n");
+        ERRLOG("Failed to find kernelcache path in BuildManifest.plist!\n");
         return false;
     }
 
-    log("Downloading %s to %s...\n", kernelCachePath.UTF8String, outPath.UTF8String);
+    LOG("Downloading %s to %s...\n", kernelCachePath.UTF8String, outPath.UTF8String);
 
     NSData *kernelCacheData = [zip getFileForPath:kernelCachePath error:&error];
     if (!kernelCacheData) {
-        error("Failed to download kernelcache! %s\n", error.localizedDescription.UTF8String);
+        ERRLOG("Failed to download kernelcache! %s\n", error.localizedDescription.UTF8String);
         return false;
     } else {
-        log("Downloaded kernelcache!\n");
+        LOG("Downloaded kernelcache!\n");
     }
 
-    if (![kernelCacheData writeToFile:outPath atomically:YES]) {
-        error("Failed to write kernelcache to %s!\n", outPath.UTF8String);
+    if (![kernelCacheData writeToFile:outPath options:NSDataWritingAtomic error:&error]) {
+        ERRLOG("Failed to write kernelcache to %s! %s\n", outPath.UTF8String, error.localizedDescription.UTF8String);
         return false;
     }
 
     return true;
 }
 
+bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
+    NSString *boardconfig = getBoardconfig();
+
+    if (!boardconfig) {
+        ERRLOG("Failed to get boardconfig!\n");
+        return false;
+    }
+
+    return download_kernelcache_for(boardconfig, zipURL, isOTA, outPath);
+}
+
+// TODO: Only require one of model identifier/boardconfig and use API to get the other?
+bool grab_kernelcache_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardconfig, NSString *outPath) {
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURLFor(osStr, build, modelIdentifier, &isOTA);
+    if (!firmwareURL) {
+        ERRLOG("Failed to get firmware URL!\n");
+        return false;
+    }
+
+    return download_kernelcache_for(boardconfig, firmwareURL, isOTA, outPath);
+}
+
 bool grab_kernelcache(NSString *outPath) {
     bool isOTA = NO;
     NSString *firmwareURL = getFirmwareURL(&isOTA);
     if (!firmwareURL) {
-        error("Failed to get firmware URL!\n");
+        ERRLOG("Failed to get firmware URL!\n");
         return false;
     }
 

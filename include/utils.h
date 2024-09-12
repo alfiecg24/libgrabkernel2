@@ -1,6 +1,7 @@
 #ifndef utils_h
 #define utils_h
 
+#include <Foundation/Foundation.h>
 #include <stdio.h>
 
 #define LIBGRABKERNEL2_USE_LOG_PREFIX 1
@@ -11,14 +12,19 @@
 #define LOG_PREFIX ""
 #endif
 
-#define log(fmt, ...) printf(LOG_PREFIX fmt, ##__VA_ARGS__)
+#define LOG(fmt, ...) printf(LOG_PREFIX fmt, ##__VA_ARGS__)
 
-#define error(fmt, ...) log("ERROR: " fmt, ##__VA_ARGS__)
+#define ERRLOG(fmt, ...) LOG("ERROR: " fmt, ##__VA_ARGS__)
 
 #ifdef DEBUG
-#define debug(fmt, ...) log("DEBUG: " fmt, ##__VA_ARGS__)
+#define DBGLOG(fmt, ...) LOG("DEBUG: " fmt, ##__VA_ARGS__)
 #else
-#define debug(fmt, ...)
+#define DBGLOG(fmt, ...)
 #endif
+
+NSString *getOsStr(void);
+NSString *getBuild(void);
+NSString *getModelIdentifier(void);
+NSString *getBoardconfig(void);
 
 #endif /* utils_h */
