@@ -12,7 +12,7 @@ LDFLAGS ?= -framework Foundation -framework Security -L_external/lib/$(TARGET) -
 ifeq ($(TARGET), macos)
 CFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=11.0
 else ifeq ($(TARGET), ios)
-CFLAGS += -arch arm64 -arch arm64e -isysroot $(shell xcrun --sdk iphoneos --show-sdk-path) -miphoneos-version-min=14.0
+CFLAGS += -arch arm64 -arch arm64e -isysroot $(shell xcrun --sdk iphoneos --show-sdk-path) -miphoneos-version-min=14.0 -DIOS_BUILD
 LDFLAGS += -framework UIKit
 else
 $(error Unsupported target $(TARGET))

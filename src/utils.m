@@ -1,6 +1,9 @@
 #import "utils.h"
 #import <Foundation/Foundation.h>
 #import <sys/sysctl.h>
+#ifdef IOS_BUILD
+#import <UIKit/UIKit.h>
+#endif
 
 NSString *fetchSysctlString(const char *name) {
     char buffer[256];
