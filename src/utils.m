@@ -1,7 +1,7 @@
 #import "utils.h"
 #import <Foundation/Foundation.h>
 #import <sys/sysctl.h>
-#ifdef IOS_BUILD
+#if !(TARGET_OS_MACCATALYST || TARGET_OS_OSX)
 #import <UIKit/UIKit.h>
 #endif
 
