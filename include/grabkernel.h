@@ -17,6 +17,9 @@ bool grab_kernelcache_for(NSString *osStr, NSString *build, NSString *modelIdent
 bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath);
 bool grab_kernelcache(NSString *outPath);
 
+// Uses details of the current device, but allows you to override the build number
+bool grab_kernelcache_for_build_number(NSString *build, NSString *outPath);
+
 // libgrabkernel compatibility shim
 // Note that research kernel grabbing is not currently supported
 int grabkernel(char *downloadPath, int isResearchKernel);

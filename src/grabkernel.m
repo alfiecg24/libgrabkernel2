@@ -120,6 +120,17 @@ bool grab_kernelcache(NSString *outPath) {
     return download_kernelcache(firmwareURL, isOTA, outPath);
 }
 
+bool grab_kernelcache_for_build_number(NSString *build, NSString *outPath) {
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURLFor(getOsStr(), build, getModelIdentifier(), &isOTA);
+    if (!firmwareURL) {
+        ERRLOG("Failed to get firmware URL for build number!\n");
+        return false;
+    }
+
+    return download_kernelcache(firmwareURL, isOTA, outPath);
+}
+
 // libgrabkernel compatibility shim
 // Note that research kernel grabbing is not currently supported
 int grabkernel(char *downloadPath, int isResearchKernel __unused) {
