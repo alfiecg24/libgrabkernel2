@@ -10,12 +10,13 @@
 
 #include <Foundation/Foundation.h>
 
-bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outPath);
-bool grab_kernelcache_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardconfig, NSString *outPath);
-
-// Uses details of the current device
-bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath);
+// Grab the kernelcache for the current device and save it to outPath
 bool grab_kernelcache(NSString *outPath);
+bool grab_kernelcache_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardConfig, NSString *outPath);
+
+// Grab the kernelcache, SPTM and TXM for the current device and save them to outDir
+bool grab_images(NSString *outDir);
+bool grab_images_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardConfig, NSString *outDir);
 
 // Uses details of the current device, but allows you to override the build number
 bool grab_kernelcache_for_build_number(NSString *build, NSString *outPath);

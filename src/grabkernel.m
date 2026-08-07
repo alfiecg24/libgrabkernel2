@@ -13,22 +13,67 @@
 #include "appledb.h"
 #include "utils.h"
 
-bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outPath) {
+static bool ensureWritableDirectory(NSString *dir) {
+    if (dir.length == 0) {
+        dir = @".";
+    }
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSError *error = nil;
+    if (![fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:&error]) {
+        ERRLOG("Failed to create output directory %s! %s\n", dir.UTF8String, error.localizedDescription.UTF8String);
+        return false;
+    }
+    if (![fm isWritableFileAtPath:dir]) {
+        ERRLOG("Output directory %s is not writable!\n", dir.UTF8String);
+        return false;
+    }
+    return true;
+}
+
+static bool fetchAndWrite(Partial *zip, NSString *name, NSString *zipPath, NSString *outPath) {
+    NSError *error = nil;
+
+    LOG("Downloading %s to %s...\n", zipPath.UTF8String, outPath.UTF8String);
+
+    NSData *data = [zip getFileForPath:zipPath error:&error];
+    if (!data) {
+        ERRLOG("Failed to download %s! %s\n", name.UTF8String, error.localizedDescription.UTF8String);
+        return false;
+    }
+
+    if (![data writeToFile:outPath options:NSDataWritingAtomic error:&error]) {
+        ERRLOG("Failed to write %s to %s! %s\n", name.UTF8String, outPath.UTF8String, error.localizedDescription.UTF8String);
+        return false;
+    }
+
+    LOG("Downloaded %s!\n", name.UTF8String);
+    return true;
+}
+
+static bool downloadImages(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *kernelOutPath, NSString *extrasOutDir) {
     NSError *error = nil;
     NSString *pathPrefix = isOTA ? @"AssetData/boot" : @"";
+
+    if (!boardconfig) {
+        ERRLOG("Missing boardconfig!\n");
+        return false;
+    }
 
     if (!zipURL) {
         ERRLOG("Missing firmware URL!\n");
         return false;
     }
 
-    if (!outPath) {
+    if (!kernelOutPath) {
         ERRLOG("Missing output path!\n");
         return false;
     }
 
-    if (![[NSFileManager defaultManager] isWritableFileAtPath:outPath.stringByDeletingLastPathComponent]) {
-        ERRLOG("Output directory is not writable!\n");
+    if (!ensureWritableDirectory([kernelOutPath stringByDeletingLastPathComponent])) {
+        return false;
+    }
+
+    if (extrasOutDir && !ensureWritableDirectory(extrasOutDir)) {
         return false;
     }
 
@@ -47,19 +92,31 @@ bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOT
     }
 
     NSDictionary *buildManifest = [NSPropertyListSerialization propertyListWithData:buildManifestData options:0 format:NULL error:&error];
-    if (error) {
+    if (!buildManifest) {
         ERRLOG("Failed to parse BuildManifest.plist! %s\n", error.localizedDescription.UTF8String);
         return false;
     }
 
-    NSString *kernelCachePath = nil;
+    NSString *kernelCachePath = nil, *securePageTableMonitorPath = nil, *trustedExecutionMonitorPath = nil;
 
     for (NSDictionary<NSString *, id> *identity in buildManifest[@"BuildIdentities"]) {
         if ([identity[@"Info"][@"Variant"] hasPrefix:@"Research"]) {
             continue;
         }
         if ([identity[@"Info"][@"DeviceClass"] isEqualToString:boardconfig.lowercaseString]) {
-            kernelCachePath = [pathPrefix stringByAppendingPathComponent:identity[@"Manifest"][@"KernelCache"][@"Info"][@"Path"]];
+            NSDictionary *manifest = identity[@"Manifest"];
+            kernelCachePath = [pathPrefix stringByAppendingPathComponent:manifest[@"KernelCache"][@"Info"][@"Path"]];
+
+            if (extrasOutDir) {
+                if (manifest[@"Ap,SecurePageTableMonitor"]) {
+                    securePageTableMonitorPath = [pathPrefix stringByAppendingPathComponent:manifest[@"Ap,SecurePageTableMonitor"][@"Info"][@"Path"]];
+                }
+
+                if (manifest[@"Ap,TrustedExecutionMonitor"]) {
+                    trustedExecutionMonitorPath = [pathPrefix stringByAppendingPathComponent:manifest[@"Ap,TrustedExecutionMonitor"][@"Info"][@"Path"]];
+                }
+            }
+            break;
         }
     }
 
@@ -68,22 +125,33 @@ bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOT
         return false;
     }
 
-    LOG("Downloading %s to %s...\n", kernelCachePath.UTF8String, outPath.UTF8String);
-
-    NSData *kernelCacheData = [zip getFileForPath:kernelCachePath error:&error];
-    if (!kernelCacheData) {
-        ERRLOG("Failed to download kernelcache! %s\n", error.localizedDescription.UTF8String);
+    if (!fetchAndWrite(zip, @"kernelcache", kernelCachePath, kernelOutPath)) {
         return false;
-    } else {
-        LOG("Downloaded kernelcache!\n");
     }
 
-    if (![kernelCacheData writeToFile:outPath options:NSDataWritingAtomic error:&error]) {
-        ERRLOG("Failed to write kernelcache to %s! %s\n", outPath.UTF8String, error.localizedDescription.UTF8String);
+    if (securePageTableMonitorPath &&
+        !fetchAndWrite(zip, @"SecurePageTableMonitor", securePageTableMonitorPath, [extrasOutDir stringByAppendingPathComponent:@"sptm.im4p"])) {
+        return false;
+    }
+
+    if (trustedExecutionMonitorPath &&
+        !fetchAndWrite(zip, @"TrustedExecutionMonitor", trustedExecutionMonitorPath, [extrasOutDir stringByAppendingPathComponent:@"txm.im4p"])) {
         return false;
     }
 
     return true;
+}
+
+bool download_kernelcache_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outPath) {
+    return downloadImages(boardconfig, zipURL, isOTA, outPath, nil);
+}
+
+bool download_images_for(NSString *boardconfig, NSString *zipURL, bool isOTA, NSString *outDir) {
+    if (!outDir) {
+        ERRLOG("Missing output directory!\n");
+        return false;
+    }
+    return downloadImages(boardconfig, zipURL, isOTA, [outDir stringByAppendingPathComponent:@"kernelcache"], outDir);
 }
 
 bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
@@ -95,6 +163,17 @@ bool download_kernelcache(NSString *zipURL, bool isOTA, NSString *outPath) {
     }
 
     return download_kernelcache_for(boardconfig, zipURL, isOTA, outPath);
+}
+
+bool download_images(NSString *zipURL, bool isOTA, NSString *outDir) {
+    NSString *boardconfig = getBoardconfig();
+
+    if (!boardconfig) {
+        ERRLOG("Failed to get boardconfig!\n");
+        return false;
+    }
+
+    return download_images_for(boardconfig, zipURL, isOTA, outDir);
 }
 
 // TODO: Only require one of model identifier/boardconfig and use API to get the other?
@@ -129,6 +208,28 @@ bool grab_kernelcache_for_build_number(NSString *build, NSString *outPath) {
     }
 
     return download_kernelcache(firmwareURL, isOTA, outPath);
+}
+
+bool grab_images_for(NSString *osStr, NSString *build, NSString *modelIdentifier, NSString *boardconfig, NSString *outDir) {
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURLFor(osStr, build, modelIdentifier, &isOTA);
+    if (!firmwareURL) {
+        ERRLOG("Failed to get firmware URL!\n");
+        return false;
+    }
+
+    return download_images_for(boardconfig, firmwareURL, isOTA, outDir);
+}
+
+bool grab_images(NSString *outDir) {
+    bool isOTA = NO;
+    NSString *firmwareURL = getFirmwareURL(&isOTA);
+    if (!firmwareURL) {
+        ERRLOG("Failed to get firmware URL!\n");
+        return false;
+    }
+
+    return download_images(firmwareURL, isOTA, outDir);
 }
 
 // libgrabkernel compatibility shim

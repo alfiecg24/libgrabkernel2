@@ -11,6 +11,11 @@ int main(int argc, const char *argv[]) {
         result &= grab_kernelcache_for(@"iOS", @"19H218", @"iPhone13,4", @"D54pAP",
                                        [NSTemporaryDirectory() stringByAppendingPathComponent:@"kc"]);
         NSLog(@"result: %@", result ? @"success" : @"failure");
+
+        // This device has SPTM and TXM, so the code should grab them as well
+        result &= grab_images_for(@"iOS", @"21C66", @"iPhone15,4", @"d37ap",
+                                  [NSTemporaryDirectory() stringByAppendingPathComponent:@"images"]);
+        NSLog(@"result: %@", result ? @"success" : @"failure");
         return !result;
     }
 }
